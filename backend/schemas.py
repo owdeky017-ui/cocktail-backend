@@ -44,7 +44,7 @@ class CocktailBase(BaseModel):
 
 
 class CocktailCreate(CocktailBase):
-    pass
+    items: list[RecipeItemCreate] = []
 
 
 class Cocktail(CocktailBase):
