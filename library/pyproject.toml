@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mixology"
+version = "0.1.0"
+description = "Pure recipe maths for the cocktail app"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["mixology"]
