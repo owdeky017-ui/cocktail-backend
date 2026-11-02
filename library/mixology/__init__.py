@@ -91,4 +91,17 @@ def normalize_unit(text):
     return quantity, UNIT_ALIAS[unit]
 
 
+def scale(items, factor):
+    if factor <= 0:
+        raise ValueError(f"Factor must be positive: {factor}")
+    scaled = []
+    for low, high in items:
+        low_quantity, unit = normalize_unit(low)
+        high_quantity, _ = normalize_unit(high)
+        scaled.append((
+            f"{round(low_quantity * factor, 3):g} {unit}",
+            f"{round(high_quantity * factor, 3):g} {unit}",
+        ))
+    return scaled
+
     

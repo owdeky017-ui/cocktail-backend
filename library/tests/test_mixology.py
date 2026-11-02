@@ -1,6 +1,6 @@
 import pytest
 
-from mixology import to_ml, normalize_unit
+from mixology import to_ml, normalize_unit, scale
 
 def test_normalize_unit():
     assert normalize_unit("1 ml") == (1, "ml")
@@ -94,4 +94,45 @@ def test_empty_or_none_input_raises_value_error():
         normalize_unit("")
     with pytest.raises(ValueError):
         normalize_unit(None)
+
+
+def test_scale_double():
+    assert scale([("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")], 2) == [("2 oz", "4 oz"), ("2 tbsp", "4 tbsp")]
+
+
+def test_scale_half():
+    assert scale([("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")], 0.5) == [("0.5 oz", "1 oz"), ("0.5 tbsp", "1 tbsp")]
+
+
+def test_scale_by_one_is_unchanged():
+    assert scale([("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")], 1) == [("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")]
+
+
+def test_scale_empty_list():
+    assert scale([], 2) == []
+
+
+def test_scale_rounds_float_values():
+    assert scale([("1/3 oz", "2/3 oz")], 3) == [("1 oz", "2 oz")]
+
+
+def test_scale_keeps_units():
+    assert scale([("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")], 2) == [("2 oz", "4 oz"), ("2 tbsp", "4 tbsp")]
+
+
+def test_scale_zero_factor():
+    with pytest.raises(ValueError):
+        scale([("1 oz", "2 oz")], 0)
+
+
+def test_scale_negative_factor():
+    with pytest.raises(ValueError):
+        scale([("1 oz", "2 oz")], -1)
+
+
+def test_scale_does_not_modify_original_list():
+    original = [("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")]
+    scaled = scale(original, 2)
+    assert original == [("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")]
+    assert scaled == [("2 oz", "4 oz"), ("2 tbsp", "4 tbsp")]
     
