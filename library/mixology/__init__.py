@@ -14,6 +14,12 @@ def to_ml(quantity, unit='ml'):
 
 
 FRACTIONAL_UNITS = {
+    '⅛': 0.125,
+    '¼': 0.25,
+    '⅓': 0.333333,
+    '½': 0.5,
+    '⅔': 0.666667,
+    '¾': 0.75,
     '1/8': 0.125,
     '1/4': 0.25,
     '1/3': 0.333333,
@@ -37,6 +43,7 @@ UNIT_ALIAS = {
     'teaspoon': 'tsp',
     'teaspoons': 'tsp',
     'dash': 'dash',
+    'dashes': 'dash',
     'piece': 'piece',
     'pieces': 'piece',
     'whole': 'piece',
@@ -56,7 +63,7 @@ def normalize_unit(text):
 
     if not text or not str(text).strip():
         raise ValueError("Unit cannot be empty or None")
-    cleaned_text = str(text).strip().lower().replace(' ', '').replace('-', '')
+    cleaned_text = str(text).strip().lower()
     for char, value in FRACTIONAL_UNITS.items():
         if char in cleaned_text:
             cleaned_text = cleaned_text.replace(char, str(value))
