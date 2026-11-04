@@ -1,6 +1,6 @@
 import pytest
 
-from mixology import to_ml, normalize_unit, scale
+from mixology import to_ml, normalize_unit, scale, match_score, suggest
 
 def test_normalize_unit():
     assert normalize_unit("1 ml") == (1, "ml")
@@ -135,4 +135,93 @@ def test_scale_does_not_modify_original_list():
     scaled = scale(original, 2)
     assert original == [("1 oz", "2 oz"), ("1 tbsp", "2 tbsp")]
     assert scaled == [("2 oz", "4 oz"), ("2 tbsp", "4 tbsp")]
-    
+
+
+def test_match_score_all_available():
+    assert match_score(["Gin", "Lemon Juice"], ["Gin", "Lemon Juice"]) == 2.0
+
+
+def test_match_score_half_available():
+    assert match_score(["Gin", "Lemon Juice"], ["Gin", "Simple Syrup"]) == 1.0
+
+def test_match_score_none_available():
+    assert match_score(["Gin", "Lemon Juice"], ["Simple Syrup", "Water"]) == 0.0
+
+
+def test_match_score_empty_available():
+    assert match_score(["Gin", "Lemon Juice"], []) == 0.0
+
+
+def test_match_score_ignores_case_and_spaces():
+    assert match_score(["Gin", "Lemon Juice"], ["gin", "lemon juice"]) == 2.0
+    assert match_score(["Gin", "Lemon Juice"], ["  gin  ", "  lemon juice  "]) == 2.0
+
+
+def test_match_score_ignores_duplicates_in_available():
+    assert match_score(["Gin", "Lemon Juice"], ["Gin", "Gin", "Lemon Juice"]) == 2.0
+
+
+def test_match_score_empty_recipe_ingredients():
+    with pytest.raises(ValueError):
+        match_score([], ["Gin", "Lemon Juice"])
+
+
+def test_match_score_extra_available_ingredients():
+    assert match_score(["Gin", "Lemon Juice"], ["Gin", "Lemon Juice", "Simple Syrup"]) == 2.0
+
+
+def test_suggest_sorts_by_match_ratio():
+    cocktail = [
+        {"name": "  Mojito  ", "ingredients": ["Gin", "Lemon Juice"]},
+        {"name": "Margarita", "ingredients": ["Tequila", "Lime Juice"]}
+    ]
+    assert suggest(cocktail, ["Gin", "Lemon Juice"]) == [
+        ("  Mojito  ", 1.0),
+        ("Margarita", 0.0)
+    ]
+
+
+def test_suggest_limits_results():
+    cocktail = [
+        {"name": "Mojito", "ingredients": ["Gin", "Lemon Juice"]},
+        {"name": "Margarita", "ingredients": ["Tequila", "Lime Juice"]},
+        {"name": "Daiquiri", "ingredients": ["Rum", "Lime Juice"]}
+    ]
+    assert suggest(cocktail, ["Gin", "Lemon Juice"], limit=2) == [
+        ("Mojito", 1.0),
+        ("Margarita", 0.0)
+    ]
+
+
+def test_suggest_limit_larger_than_results():
+    cocktail = [
+        {"name": "Mojito", "ingredients": ["Gin", "Lemon Juice"]},
+        {"name": "Margarita", "ingredients": ["Tequila", "Lime Juice"]}
+    ]
+    assert suggest(cocktail, ["Gin", "Lemon Juice"], limit=5) == [
+        ("Mojito", 1.0),
+        ("Margarita", 0.0)
+    ]
+
+
+def test_suggest_empty_cocktail_list():
+    assert suggest([], ["Gin", "Lemon Juice"]) == []
+
+
+def test_suggest_skips_cocktails_with_no_ingredients():
+    cocktail = [
+        {"name": "Mojito", "ingredients": ["Gin", "Lemon Juice"]},
+        {"name": "Mystery Cocktail", "ingredients": []}
+    ]
+    assert suggest(cocktail, ["Gin", "Lemon Juice"]) == [
+        ("Mojito", 1.0)
+    ]
+
+
+def test_suggest_zero_match_ratio():
+    cocktail = [
+        {"name": "Margarita", "ingredients": ["Tequila", "Lime Juice"]}
+    ]
+    assert suggest(cocktail, ["Gin", "Lemon Juice"]) == [
+        ("Margarita", 0.0)
+    ]        

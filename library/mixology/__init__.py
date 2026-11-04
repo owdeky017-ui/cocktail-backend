@@ -104,4 +104,28 @@ def scale(items, factor):
         ))
     return scaled
 
-    
+
+def match_score(recipe_ingredients, available_ingredients):
+    if not recipe_ingredients:
+        raise ValueError("Recipe ingredients list cannot be empty")
+    score = 0
+    for recipe_ingredient in recipe_ingredients:
+        for available_ingredient in available_ingredients:
+            if recipe_ingredient.strip().lower() == available_ingredient.strip().lower():
+                score += 1
+                break
+    return score
+
+
+def suggest(cocktails, available_ingredients, limit=None):
+    suggestions = []
+    for cocktail in cocktails:
+        ingredients = cocktail.get('ingredients', [])
+        if not ingredients:
+            continue
+        score = match_score(ingredients, available_ingredients)/len(ingredients)
+        suggestions.append((cocktail['name'], round(score, 2)))
+    suggestions.sort(key=lambda x: x[1], reverse=True)
+    if limit is not None:
+        suggestions = suggestions[:limit]
+    return suggestions
