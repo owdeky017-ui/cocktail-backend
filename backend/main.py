@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import models
 import schemas
+import mixology
 from database import Base, engine, get_db
 
 
@@ -165,3 +166,22 @@ def delete_ingredient(ingredient_id: int, db: Session = Depends(get_db)):
     db.delete(ingredient)
     db.commit()
     return None
+
+
+@app.get("/suggest")
+def suggest_cocktails(
+    available_ingredients: list[str] = Query(..., min_length=1),
+    limit: int = Query(default=5, ge=1, le=20),
+    db: Session = Depends(get_db)
+):
+    cocktails = db.query(models.Cocktail).options(joinedload(models.Cocktail.items).joinedload(models.RecipeItem.ingredient)).all()
+    suggestions = mixology.suggest(
+        cocktails=[{
+            'name': cocktail.name,
+            'ingredients': [item.ingredient.name for item in cocktail.items]
+        } for cocktail in cocktails],
+        available_ingredients=available_ingredients,
+        limit=limit
+    )
+    ids = {cocktail.name: cocktail.id for cocktail in cocktails}
+    return [{"id": ids[name], "name": name, "score": score} for name, score in suggestions]
