@@ -185,3 +185,29 @@ def suggest_cocktails(
     )
     ids = {cocktail.name: cocktail.id for cocktail in cocktails}
     return [{"id": ids[name], "name": name, "score": score} for name, score in suggestions]
+
+
+@app.get("/cocktails/{cocktail_id}/scale")
+def scale_cocktail(cocktail_id: int, servings: float = Query(default=1.0, gt=0, le=50), db: Session = Depends(get_db)):
+    cocktail = db.query(models.Cocktail).options(joinedload(models.Cocktail.items).joinedload(models.RecipeItem.ingredient)).filter(models.Cocktail.id == cocktail_id).first()
+    if not cocktail:
+        raise HTTPException(status_code=404, detail="Cocktail not found")
+    if not cocktail.items:
+        raise HTTPException(status_code=400, detail="Cocktail has no ingredients to scale")
+
+    amount  = [(f"{item.quantity:g} {item.unit}", f"{item.quantity:g} {item.unit}") for item in cocktail.items]
+    scaled = mixology.scale(amount, servings)
+    scaled_items = []
+    for item, (amount, _) in zip(cocktail.items, scaled):
+        quantity, unit = mixology.normalize_unit(amount)
+        millilitres = mixology.to_ml(quantity, unit) if unit in mixology.UNIT_TO_ML else None
+        scaled_items.append({
+            "ingredient": item.ingredient.name,
+            "amount" : amount,
+            "millilitres": round(millilitres, 2) if millilitres is not None else None
+        })
+    return {
+        "name": cocktail.name,       
+        "servings": servings,
+        "items": scaled_items
+    }
