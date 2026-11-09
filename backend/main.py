@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
+from fastapi.middleware.cors import CORSMiddleware
 
 import models
 import schemas
@@ -11,7 +12,12 @@ Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI(title="Cocktail App", version="1.0.0")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 @app.get("/health")
 def health():
