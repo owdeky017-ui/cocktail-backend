@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import models
 import schemas
 import mixology
-from database import Base, engine, get_db
+from database import Base, engine, get_db, SessionLocal
 
 
 Base.metadata.create_all(bind=engine)
@@ -18,6 +18,59 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+@app.on_event("startup")
+def seed_data():
+    db = SessionLocal()
+    try:
+        if db.query(models.Cocktail).count() > 0:
+            return
+
+        ingredients = {
+             "Gin": "base",
+            "Vodka": "base",
+            "Campari": "liqueur",
+            "Sweet Vermouth": "liqueur",
+            "Lemon juice": "juice",
+            "Syrup": "syrup",
+            "Soda water": "other",
+            "Tonic Water": "other"
+        }
+        for name, kind in ingredients.items():
+            db.add(models.Ingredient(name=name, kind=kind))
+        db.commit()
+
+        ids = {i.name: i.id for i in db.query(models.Ingredient).all()}
+
+        recipes = [
+            ("Negroni", "Stir with ice and strain into a rocks glass over a large cube.", "Rocks", "Classic",
+             [("Gin", 30), ("Campari", 30), ("Sweet Vermouth", 30)]),
+            ("Gin Tonic", "Build over ice in a highball glass and stir gently.", "Highball", "Classic",
+             [("Gin", 50), ("Tonic Water", 150)]),
+            ("Gin Sour", "Shake with ice and strain into a chilled coupe.", "Coupe", "Sour",
+             [("Gin", 50), ("Lemon juice", 25), ("Syrup", 15)]),
+            ("Vodka Soda", "Build over ice in a highball glass and stir gently.", "Highball", "Classic",
+             [("Vodka", 50), ("Soda water", 150)])
+        ]
+
+        for name, instructions, glass, category, items in recipes:
+            cocktail = models.Cocktail(
+                name=name,
+                instructions=instructions,
+                glass=glass,
+                category=category
+            )
+            for ingredient_name, quantity in items:
+                cocktail.items.append(models.RecipeItem(
+                    quantity=quantity,
+                    unit="ml",
+                    ingredient_id=ids[ingredient_name]
+                ))
+            db.add(cocktail)
+
+        db.commit()
+    finally:
+        db.close()
 
 @app.get("/health")
 def health():
