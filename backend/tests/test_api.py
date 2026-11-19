@@ -39,6 +39,8 @@ def test_create_cocktail_return_nested_items(client):
     assert cocktail["name"] == "Gimlet"
     assert len(cocktail["items"]) == 2
     assert cocktail["items"][0]["ingredient"]["name"] == "Gin"
+    assert cocktail["image_url"] == "https://example.com/gimlet.jpg"
+
 
 
 def test_create_cocktail_with_unknown_ingredient_returns_400(client):

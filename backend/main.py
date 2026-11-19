@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +11,12 @@ from database import Base, engine, get_db, SessionLocal
 
 Base.metadata.create_all(bind=engine)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    seed_data()
+    yield
 
-app = FastAPI(title="Cocktail App", version="1.0.0")
+app = FastAPI(title="Cocktail App", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "https://cocktail-cloud.netlify.app"],
@@ -19,7 +24,6 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-@app.on_event("startup")
 def seed_data():
     db = SessionLocal()
     try:
@@ -44,22 +48,28 @@ def seed_data():
 
         recipes = [
             ("Negroni", "Stir with ice and strain into a rocks glass over a large cube.", "Rocks", "Classic",
+             "https://www.thecocktaildb.com/images/media/drink/qgdu971561574065.jpg",
              [("Gin", 30), ("Campari", 30), ("Sweet Vermouth", 30)]),
             ("Gin Tonic", "Build over ice in a highball glass and stir gently.", "Highball", "Classic",
+             "https://www.thecocktaildb.com/images/media/drink/qcgz0t1643821443.jpg",
              [("Gin", 50), ("Tonic Water", 150)]),
             ("Gin Sour", "Shake with ice and strain into a chilled coupe.", "Coupe", "Sour",
+             "https://www.thecocktaildb.com/images/media/drink/noxp7e1606769224.jpg",
              [("Gin", 50), ("Lemon juice", 25), ("Syrup", 15)]),
             ("Vodka Soda", "Build over ice in a highball glass and stir gently.", "Highball", "Classic",
+             "https://www.thecocktaildb.com/images/media/drink/9koz3f1643821062.jpg",
              [("Vodka", 50), ("Soda water", 150)])
         ]
 
-        for name, instructions, glass, category, items in recipes:
+        for name, instructions, glass, category, image_url, items in recipes:
             cocktail = models.Cocktail(
                 name=name,
                 instructions=instructions,
                 glass=glass,
-                category=category
+                category=category,
+                image_url=image_url
             )
+
             for ingredient_name, quantity in items:
                 cocktail.items.append(models.RecipeItem(
                     quantity=quantity,
