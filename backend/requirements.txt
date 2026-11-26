@@ -4,3 +4,4 @@ sqlalchemy
 pytest
 httpx
 flake8
+psycopg[binary]
